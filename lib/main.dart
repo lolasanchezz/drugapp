@@ -105,7 +105,7 @@ class _DrugInteractionSearchState extends State<DrugInteractionSearch> {
                 itemBuilder: (context, index) {
                   final result = _results[index];
                   final brandNames = result['openfda']['brand_name']?.join(', ') ?? 'No brand name available';
-                  final interactions = result['drug_interaction']?.join(', ') ?? 'No interactions found';
+                  final interactions = result['drug_interactions']?.join(', ') ?? 'No interactions found';
                   return ListTile(
                     title: Text(brandNames),
                     subtitle: Text(interactions),
