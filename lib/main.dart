@@ -113,12 +113,16 @@ class _DrugInteractionSearchState extends State<DrugInteractionSearch> {
 
   @override
   Widget build(BuildContext context) {
+
     return Scaffold(
       appBar: AppBar(title: const Text('Drug Interaction Search')),
+      
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
+          
           children: [
+            Image.asset('assets/logo.png'),
             TextField(
               controller: _controller,
               decoration: InputDecoration(
@@ -136,6 +140,7 @@ class _DrugInteractionSearchState extends State<DrugInteractionSearch> {
               ),
               style: TextStyle(color: const Color(0xFF5A3B69)), // Text color
             ),
+            
             const SizedBox(height: 10),
             ElevatedButton(
               onPressed: _loading ? null : _handleSearch,
