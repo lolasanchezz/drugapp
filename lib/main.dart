@@ -3,7 +3,6 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:google_gemini/google_gemini.dart';
 import 'package:collection/collection.dart';
-import 'package:flutter/material.dart';
 
 void main() {
   runApp(const MyApp());
@@ -17,7 +16,11 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Drug Interaction App',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        scaffoldBackgroundColor: const Color(0xFFE4D9FF), // Background color
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.deepPurple,
+          primary: const Color(0xFF976CAB), // Button background color
+        ),
       ),
       home: const DrugInteractionSearch(),
     );
@@ -55,9 +58,8 @@ class _DrugInteractionSearchState extends State<DrugInteractionSearch> {
 
     try {
       final response = await http.get(
-        //put limit as 10 here - we can change later
         Uri.parse(
-          "https://api.fda.gov/drug/label.json?search=drug_interactions:${Uri.encodeComponent(drugName)}&limit=50",
+          "https://api.fda.gov/drug/label.json?search=drug_interactions:${Uri.encodeComponent(drugName)}&limit=10", // Limit set to 10
         ),
       );
 
@@ -83,9 +85,6 @@ class _DrugInteractionSearchState extends State<DrugInteractionSearch> {
   }
 
   Future<void> _gemSummary(description, index, name) async {
-    print("hello");
-    print(name);
-
     final gemini = GoogleGemini(
       apiKey: "AIzaSyClxB5j9KUQpD0ottj97ZLPmCxbqoErd4E",
     );
@@ -93,26 +92,17 @@ class _DrugInteractionSearchState extends State<DrugInteractionSearch> {
     await gemini
         .generateFromText(
           "Prompt: **DO NOT** USE SPECIAL MARKDOWN BOLDING CHARACTERS!!! not even ONE ASTERISK. Summarize the following in less-scientific terms ONLY in how it relates to $name, and mention the max dosage of the two drugs when taken together"
-          "$description", 
-
-           // FIXME query too long => returns http 200
+          "$description",
         )
         .then(
-          (value) => 
-            setState(() {
-              var text = value.text.replaceAll(RegExp(r'\*'), '').replaceAll(RegExp(r'\*'), '-');;
-               
-              _results[index]['drug_interactions'] = text;
-              print(value.text);
-              print(value.text.runtimeType);
-            }),
-          
-        ).catchError((e)=>{
-          (e) => setState(() {
-            _results[index]['drug_interactions'] = Text(e);
-            print(e);
-          })
-        });
+          (value) => setState(() {
+            var text = value.text.replaceAll(RegExp(r'\*'), '').replaceAll(RegExp(r'\*'), '-');
+            _results[index]['drug_interactions'] = text;
+          }),
+        )
+        .catchError((e) => setState(() {
+          _results[index]['drug_interactions'] = Text(e);
+        }));
   }
 
   void _toggleDropdown(int index) {
@@ -131,12 +121,28 @@ class _DrugInteractionSearchState extends State<DrugInteractionSearch> {
           children: [
             TextField(
               controller: _controller,
-              decoration: const InputDecoration(labelText: 'Enter drug name'),
+              decoration: InputDecoration(
+                labelText: 'Enter drug name',
+                prefixIcon: Icon(Icons.search, color: const Color(0xFF5A3B69)), // Magnifying glass icon
+                labelStyle: TextStyle(color: const Color(0xFF5A3B69)), // Label color
+                enabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: const Color(0xFFE4D9FF), width: 1.0), // Border color when enabled
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: const Color(0xFF5A3B69), width: 2.0), // Border color when focused
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
+              ),
+              style: TextStyle(color: const Color(0xFF5A3B69)), // Text color
             ),
             const SizedBox(height: 10),
             ElevatedButton(
               onPressed: _loading ? null : _handleSearch,
-              child: Text(_loading ? 'Searching...' : 'Search'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF976CAB), // Button background color
+              ),
+              child: Text(_loading ? 'Searching...' : 'Search', style: TextStyle(color: Colors.white)), // Button text color
             ),
             if (_error != null) ...[
               const SizedBox(height: 10),
@@ -148,7 +154,6 @@ class _DrugInteractionSearchState extends State<DrugInteractionSearch> {
                 itemCount: _results.length,
                 itemBuilder: (context, index) {
                   final result = _results[index];
-                  print(result['drug_interactions'].runtimeType);
                   final brandNames =
                       result['spl_product_data_elements']?.join(', ') ??
                       'No brand name available';
@@ -164,8 +169,7 @@ class _DrugInteractionSearchState extends State<DrugInteractionSearch> {
                     child: Column(
                       children: [
                         ListTile(
-                          title: Text(brandNames),
-
+                          title: Text(brandNames, style: TextStyle(color: const Color(0xFF5A3B69))), // Text color
                           trailing: Icon(
                             _isExpanded[index]
                                 ? Icons.expand_less
@@ -179,11 +183,13 @@ class _DrugInteractionSearchState extends State<DrugInteractionSearch> {
                             child: Column(
                               children: [
                                 ElevatedButton(
-                                  onPressed:
-                                      () => _gemSummary(interactions, index, (_controller.text.trim())),
-                                  child: Text("summary"),
+                                  onPressed: () => _gemSummary(interactions, index, (_controller.text.trim())),
+                                  child: Text("Summary", style: TextStyle(color: Colors.white)), // Button text color
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF976CAB), // Button background color
+                                  ),
                                 ),
-                                Text(interactions),
+                                Text(interactions, style: TextStyle(color: const Color(0xFF5A3B69))), // Text color
                               ],
                             ),
                           ),
