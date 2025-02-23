@@ -11,7 +11,6 @@ void main() {
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
-  
 
   @override
   Widget build(BuildContext context) {
@@ -39,11 +38,7 @@ class _DrugInteractionSearchState extends State<DrugInteractionSearch> {
   bool _loading = false;
   List<bool> _isExpanded = [];
 
-
-
-
   Future<void> _handleSearch() async {
-    
     final drugName = _controller.text.trim();
     if (drugName.isEmpty) {
       setState(() {
@@ -61,17 +56,16 @@ class _DrugInteractionSearchState extends State<DrugInteractionSearch> {
     try {
       final response = await http.get(
         //put limit as 10 here - we can change later
-        Uri.parse("https://api.fda.gov/drug/label.json?search=drug_interactions:${Uri.encodeComponent(drugName)}&limit=50")
-        );
+        Uri.parse(
+          "https://api.fda.gov/drug/label.json?search=drug_interactions:${Uri.encodeComponent(drugName)}&limit=50",
+        ),
+      );
 
       if (response.statusCode != 200) {
         throw Exception('Network response was not ok');
       }
 
       final data = json.decode(response.body)['results'];
-
-      
-
 
       setState(() {
         _results = data ?? [];
@@ -87,70 +81,52 @@ class _DrugInteractionSearchState extends State<DrugInteractionSearch> {
       });
     }
   }
-Future<void> _gemSummary(description, index, drug) async {
 
-print(description);
+  Future<void> _gemSummary(description, index) async {
+    print(description);
 
-final gemini = GoogleGemini(
-  apiKey: "AIzaSyClxB5j9KUQpD0ottj97ZLPmCxbqoErd4E"
-);
+    final gemini = GoogleGemini(
+      apiKey: "AIzaSyClxB5j9KUQpD0ottj97ZLPmCxbqoErd4E",
+    );
 
-final geminiResponse = await gemini.generateFromText(
-  "generate a summary of the description i give you about the interaction between two drugs. make sure to not use any characters or ANY formatting (like bolding with *, - points, etc) that interfere with formatting, and make it addressable to a average, causual NON-SCIENTIFIC user who cares about the drug interactions. make it SUPER succint and relate it to the drug, $drug. the description: $description" 
-   )
+    await gemini
+        .generateFromText(
+          "Prompt: **DO NOT** USE SPECIAL MARKDOWN BOLDING CHARACTERS!!! Summarize the following in less-scientific terms."
+          "$description", // FIXME query too long => returns http 200
+        )
+        .then(
+          (value) => 
+            setState(() {
+              _results[index]['drug_interactions'] = value.text;
+              print(value.text);
+              print(value.text.runtimeType);
+            }),
+          
+        ).catchError((e)=>{
+          (e) => setState(() {
+            _results[index]['drug_interactions'] = Text(e);
+            print(e);
+          })
+        });
+  }
 
-      .then((value) => setState(() {
-       
-        var newVal = _results;
-        newVal[index]['drug_interactions'] = value.text;
-        print(value.text.runtimeType);
-       _results = newVal;
-      }));
-      
-     // print(geminiResponse.text);
-      
-
-
-  
-
-      
-
-
-  }  
-  
-
- void _toggleDropdown(int index) {
+  void _toggleDropdown(int index) {
     setState(() {
       _isExpanded[index] = !_isExpanded[index]; // Toggle expansion
     });
   }
-  
-  
-
-
-
-
-
-
 
   @override
   Widget build(BuildContext context) {
-
-
-
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Drug Interaction Search'),
-      ),
+      appBar: AppBar(title: const Text('Drug Interaction Search')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
             TextField(
               controller: _controller,
-              decoration: const InputDecoration(
-                labelText: 'Enter drug name',
-              ),
+              decoration: const InputDecoration(labelText: 'Enter drug name'),
             ),
             const SizedBox(height: 10),
             ElevatedButton(
@@ -166,42 +142,50 @@ final geminiResponse = await gemini.generateFromText(
               child: ListView.builder(
                 itemCount: _results.length,
                 itemBuilder: (context, index) {
-                  
                   final result = _results[index];
                   print(result['drug_interactions'].runtimeType);
-                  final brandNames = result['spl_product_data_elements']?.join(', ') ?? 'No brand name available';
-                  final interactions = (result['drug_interactions'] is List) ? result['drug_interactions']?.join(', ') ?? 'No interactions found': result['drug_interactions']?.toString() ?? 'No interactions found';
+                  final brandNames =
+                      result['spl_product_data_elements']?.join(', ') ??
+                      'No brand name available';
+                  final interactions =
+                      (result['drug_interactions'] is List)
+                          ? result['drug_interactions']?.join(', ') ??
+                              'No interactions description found'
+                          : result['drug_interactions']?.toString() ??
+                              'No interactions description found';
 
                   return Card(
                     margin: const EdgeInsets.all(8.0),
                     child: Column(
                       children: [
                         ListTile(
-                           title: Text(brandNames),
+                          title: Text(brandNames),
 
-                           trailing: Icon(
-                            _isExpanded[index] ? Icons.expand_less : Icons.expand_more
-                           ),
+                          trailing: Icon(
+                            _isExpanded[index]
+                                ? Icons.expand_less
+                                : Icons.expand_more,
+                          ),
                           onTap: () => _toggleDropdown(index),
                         ),
-                          if (_isExpanded[index]) 
-                            Padding(padding: const EdgeInsets.all(8.0),
+                        if (_isExpanded[index])
+                          Padding(
+                            padding: const EdgeInsets.all(8.0),
                             child: Column(
                               children: [
                                 ElevatedButton(
-                                  onPressed: () => _gemSummary(interactions, index,  _controller.text.trim()),
-                                  child: Text("summary")
-                                 ),
-                              Text(interactions)
-                            ],)
-                            )
-                          
-                        
+                                  onPressed:
+                                      () => _gemSummary(interactions, index),
+                                  child: Text("summary"),
+                                ),
+                                Text(interactions),
+                              ],
+                            ),
+                          ),
                       ],
-                    )
+                    ),
                   );
                 },
-              
               ),
             ),
           ],
