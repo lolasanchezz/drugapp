@@ -82,8 +82,9 @@ class _DrugInteractionSearchState extends State<DrugInteractionSearch> {
     }
   }
 
-  Future<void> _gemSummary(description, index) async {
-    print(description);
+  Future<void> _gemSummary(description, index, name) async {
+    print("hello");
+    print(name);
 
     final gemini = GoogleGemini(
       apiKey: "AIzaSyClxB5j9KUQpD0ottj97ZLPmCxbqoErd4E",
@@ -91,13 +92,17 @@ class _DrugInteractionSearchState extends State<DrugInteractionSearch> {
 
     await gemini
         .generateFromText(
-          "Prompt: **DO NOT** USE SPECIAL MARKDOWN BOLDING CHARACTERS!!! Summarize the following in less-scientific terms."
-          "$description", // FIXME query too long => returns http 200
+          "Prompt: **DO NOT** USE SPECIAL MARKDOWN BOLDING CHARACTERS!!! not even ONE ASTERISK. Summarize the following in less-scientific terms ONLY in how it relates to $name, and mention the max dosage of the two drugs when taken together"
+          "$description", 
+
+           // FIXME query too long => returns http 200
         )
         .then(
           (value) => 
             setState(() {
-              _results[index]['drug_interactions'] = value.text;
+              var text = value.text.replaceAll(RegExp(r'\*'), '').replaceAll(RegExp(r'\*'), '-');;
+               
+              _results[index]['drug_interactions'] = text;
               print(value.text);
               print(value.text.runtimeType);
             }),
@@ -175,7 +180,7 @@ class _DrugInteractionSearchState extends State<DrugInteractionSearch> {
                               children: [
                                 ElevatedButton(
                                   onPressed:
-                                      () => _gemSummary(interactions, index),
+                                      () => _gemSummary(interactions, index, (_controller.text.trim())),
                                   child: Text("summary"),
                                 ),
                                 Text(interactions),
